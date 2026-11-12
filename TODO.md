@@ -1,11 +1,11 @@
-# Da fare (versione 3, in attesa del via di Sara)
+# Da fare
 
-- [ ] Pagina del giorno: tieni premuto su una voce e trascinala per cambiare l'ordine (ordine salvato e incluso nel backup)
-- [ ] In ogni voce un pulsante "✏️ Modifica opzioni" che apre un editor dove:
-  - [ ] aggiungere nuove opzioni (es. nuovi farmaci nelle terapie)
-  - [ ] eliminare opzioni (i giorni passati in cui erano segnate restano nello storico)
-  - [ ] spostare le opzioni tenendo premuto e trascinando
-- [ ] Opzioni personalizzate e ordine inclusi nel backup completo e nel trasferimento
+(niente in sospeso)
+
+## Fatto nella versione 3
+- [x] Pagina del giorno: tieni premuto sul nome di una voce e trascinala per cambiare l'ordine
+- [x] "✏️ Modifica" in ogni voce: aggiungi, togli (con "Rimetti"), sposta le opzioni trascinando
+- [x] Ordine e opzioni personalizzate inclusi nel backup completo e nel trasferimento
 
 ## Fatto nella versione 2
 - [x] Foto della pelle con sagoma del viso e ultima foto in trasparenza

@@ -57,12 +57,21 @@ fun SectionCard(title: String, content: @Composable () -> Unit) {
 /** Editor di una voce: chip normali, a scelta singola o con livello. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun CatEditor(cat: Cat, date: String, day: Day, showTitle: Boolean = true) {
+fun CatEditor(
+    cat: Cat, date: String, day: Day, showTitle: Boolean = true,
+    onEdit: (() -> Unit)? = null, handle: Modifier = Modifier,
+) {
     val ctx = LocalContext.current
     val sel = day[cat.key] ?: emptySet()
     val changed = { Widgets.refreshAsync(ctx) }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (showTitle) Text("${cat.emoji}  ${cat.title}", style = MaterialTheme.typography.titleSmall)
+        if (showTitle) Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(handle.weight(1f).padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (onEdit != null) { Text("☰", color = MaterialTheme.colorScheme.onSurfaceVariant); Spacer(Modifier.width(10.dp)) }
+                Text("${cat.emoji}  ${cat.title}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            }
+            if (onEdit != null) TextButton(onClick = onEdit) { Text("✏️ Modifica", style = MaterialTheme.typography.labelMedium) }
+        }
         if (cat.leveled) Text(
             "Tocca più volte: lieve → medio → forte → togli",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,

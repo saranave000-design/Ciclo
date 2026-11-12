@@ -97,7 +97,7 @@ private fun PickSheet(what: String, onClose: () -> Unit) {
                         else -> {
                             val skip = setOf(Catalog.PERIOD, "pain", Catalog.SKIN, Catalog.ZONES, "triggers", "feelings", "energy")
                             val prefsRev by Prefs.revision.collectAsState()
-                            val cats = remember(prefsRev) { Catalog.all.filter { it.key !in skip && Prefs.catVisible(ctx, it) } }
+                            val cats = remember(prefsRev) { Prefs.orderedCats(ctx).filter { it.key !in skip && Prefs.catVisible(ctx, it) } }
                             for (c in cats) CatEditor(c, date, day)
                             Text("🏷️  Tag", style = MaterialTheme.typography.titleSmall)
                             TagsEditor(date, day)

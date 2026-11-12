@@ -21,13 +21,72 @@ object Prefs {
     fun optVisible(ctx: Context, cat: Cat, opt: Opt): Boolean = p(ctx).getBoolean("opt_${cat.key}_${opt.key}", opt.onByDefault)
     fun setOptVisible(ctx: Context, cat: Cat, opt: Opt, v: Boolean) { p(ctx).edit().putBoolean("opt_${cat.key}_${opt.key}", v).apply(); bump() }
 
+    // ---- Liste salvate come testo (così finiscono anche nel backup)
+    private fun list(ctx: Context, key: String): List<String> = runCatching {
+        val a = org.json.JSONArray(p(ctx).getString(key, "[]"))
+        (0 until a.length()).map { a.getString(it) }
+    }.getOrDefault(emptyList())
+    private fun setList(ctx: Context, key: String, v: List<String>) {
+        p(ctx).edit().putString(key, org.json.JSONArray(v).toString()).apply(); bump()
+    }
+
+    const val CUSTOM_GROUP = "Aggiunte da te"
+
+    /** Opzioni create da Sara: la chiave è il testo stesso, così si legge ovunque (tabella, PDF). */
+    fun customOptions(ctx: Context, cat: Cat): List<Opt> {
+        val g = if (cat.options.any { it.group != null }) CUSTOM_GROUP else null
+        return list(ctx, "custom_${cat.key}").map { Opt(it, it, group = g) }
+    }
+
+    /** Ritorna false se esiste già un'opzione con lo stesso nome. */
+    fun addCustom(ctx: Context, cat: Cat, label: String): Boolean {
+        val clean = label.replace(":", " ").trim().replace(Regex("\\s+"), " ")
+        if (clean.isEmpty()) return false
+        val existing = cat.options.firstOrNull { it.label.equals(clean, true) || it.key == clean }
+        if (existing != null) {
+            if (!optVisible(ctx, cat, existing)) { setOptVisible(ctx, cat, existing, true); return true }
+            return false
+        }
+        val cur = list(ctx, "custom_${cat.key}")
+        if (cur.any { it.equals(clean, true) }) return false
+        setList(ctx, "custom_${cat.key}", cur + clean)
+        return true
+    }
+
+    /** Elimina un'opzione dall'elenco. I giorni passati in cui era segnata restano nello storico. */
+    fun removeOption(ctx: Context, cat: Cat, opt: Opt) {
+        val cur = list(ctx, "custom_${cat.key}")
+        if (opt.key in cur) setList(ctx, "custom_${cat.key}", cur - opt.key)
+        else setOptVisible(ctx, cat, opt, false)
+    }
+
+    fun hiddenBuiltIns(ctx: Context, cat: Cat): List<Opt> = cat.options.filter { !optVisible(ctx, cat, it) }
+
+    fun optOrder(ctx: Context, cat: Cat): List<String> = list(ctx, "order_${cat.key}")
+    fun setOptOrder(ctx: Context, cat: Cat, keys: List<String>) = setList(ctx, "order_${cat.key}", keys)
+
+    /** Tutte le opzioni attive, nell'ordine scelto da Sara (le nuove in fondo). */
+    fun orderedOptions(ctx: Context, cat: Cat): List<Opt> {
+        val all = cat.options.filter { optVisible(ctx, cat, it) } + customOptions(ctx, cat)
+        val order = optOrder(ctx, cat)
+        return all.sortedBy { o -> order.indexOf(o.key).let { if (it < 0) Int.MAX_VALUE else it } }
+    }
+
     /** Opzioni da mostrare: quelle attive + quelle già segnate quel giorno (così non spariscono). */
     fun visibleOptions(ctx: Context, cat: Cat, selected: Set<String> = emptySet()): List<Opt> {
         val selKeys = selected.map { Catalog.splitLevel(it).first }.toSet()
-        val base = cat.options.filter { optVisible(ctx, cat, it) || it.key in selKeys }
-        val extra = selKeys.filter { k -> cat.options.none { it.key == k } }.map { Opt(it, it) }
-        return base + extra
+        val base = orderedOptions(ctx, cat)
+        val hiddenSel = cat.options.filter { it.key in selKeys && base.none { b -> b.key == it.key } }
+        val extra = selKeys.filter { k -> base.none { it.key == k } && cat.options.none { it.key == k } }.map { Opt(it, it) }
+        return base + hiddenSel + extra
     }
+
+    // ---- Ordine delle voci nella pagina del giorno
+    fun orderedCats(ctx: Context): List<Cat> {
+        val order = list(ctx, "cat_order")
+        return Catalog.all.sortedBy { c -> order.indexOf(c.key).let { if (it < 0) Int.MAX_VALUE else it } }
+    }
+    fun setCatOrder(ctx: Context, keys: List<String>) = setList(ctx, "cat_order", keys)
 
     // ---- Promemoria
     fun reminderOn(ctx: Context) = p(ctx).getBoolean("rem_on", false)

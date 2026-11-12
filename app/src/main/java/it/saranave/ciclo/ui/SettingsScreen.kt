@@ -157,25 +157,13 @@ fun SettingsScreen() {
 
         item {
             SectionCard("👁️ Cosa vedere nell'app") {
-                Text("Scegli le voci e, toccando il nome, le singole opzioni.", style = MaterialTheme.typography.bodySmall)
-                for ((group, cats) in Catalog.groups) {
-                    Text(group, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 6.dp))
-                    for (c in cats) {
-                        val vis = remember(prefsRev) { Prefs.catVisible(ctx, c) }
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()
-                            .clickable { openCat = if (openCat == c.key) null else c.key }) {
-                            Text("${c.emoji}  ${c.title}", Modifier.weight(1f))
-                            Text(if (openCat == c.key) "▲" else "▼", fontSize = 12.sp)
-                            Spacer(Modifier.width(8.dp))
-                            Switch(checked = vis, onCheckedChange = { Prefs.setCatVisible(ctx, c, it) })
-                        }
-                        if (openCat == c.key) Column(Modifier.padding(start = 16.dp)) {
-                            for (o in c.options) Row(verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(checked = remember(prefsRev) { Prefs.optVisible(ctx, c, o) },
-                                    onCheckedChange = { Prefs.setOptVisible(ctx, c, o, it) })
-                                Text(o.label)
-                            }
-                        }
+                Text("Accendi o spegni le voci. Ordine e opzioni li cambi dalla pagina del giorno (tieni premuto per spostare, ✏️ Modifica per le opzioni).",
+                    style = MaterialTheme.typography.bodySmall)
+                for (c in remember(prefsRev) { Prefs.orderedCats(ctx) }) {
+                    val vis = remember(prefsRev) { Prefs.catVisible(ctx, c) }
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text("${c.emoji}  ${c.title}", Modifier.weight(1f))
+                        Switch(checked = vis, onCheckedChange = { Prefs.setCatVisible(ctx, c, it) })
                     }
                 }
             }
