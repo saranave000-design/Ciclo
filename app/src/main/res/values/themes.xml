@@ -1,0 +1,19 @@
+<resources>
+    <style name="Theme.Ciclo" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#FFF8F9</item>
+        <item name="android:navigationBarColor">#FFF8F9</item>
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <style name="Theme.Ciclo.Sheet" parent="android:Theme.Translucent.NoTitleBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.InputMethod</item>
+    </style>
+
+    <color name="bg">#FFF8F9</color>
+    <color name="icon_bg">#9C2F5C</color>
+</resources>

@@ -1,0 +1,58 @@
+name: Crea APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Compila l'APK
+        run: |
+          set -o pipefail
+          gradle :app:assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+
+      - name: Rinomina
+        run: cp app/build/outputs/apk/release/app-release.apk Ciclo-v${{ github.run_number }}.apk
+
+      - name: Pubblica la versione
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Ciclo versione ${{ github.run_number }}
+          body: Scarica il file .apk qui sotto dal telefono e installalo sopra la versione precedente.
+          files: Ciclo-v${{ github.run_number }}.apk
+
+      # Se la compilazione fallisce, salva il registro su un ramo "log"
+      # così Claude lo può leggere e correggere l'errore.
+      - name: Salva il registro dell'errore
+        if: failure()
+        run: |
+          git config user.name "build-bot"
+          git config user.email "build-bot@users.noreply.github.com"
+          grep -E "^e: |error:|FAILURE|What went wrong" -A3 build.log | head -n 200 > /tmp/build-log.txt || true
+          tail -n 150 build.log >> /tmp/build-log.txt || echo "nessun log" >> /tmp/build-log.txt
+          git checkout --orphan log
+          git rm -rf --cached . > /dev/null
+          cp /tmp/build-log.txt build-log.txt
+          git add build-log.txt
+          git commit -m "Log compilazione ${{ github.run_number }}"
+          git push -f origin log
