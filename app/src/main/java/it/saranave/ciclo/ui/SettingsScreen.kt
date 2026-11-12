@@ -40,8 +40,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import it.saranave.ciclo.Reminder
+import it.saranave.ciclo.data.Backup
 import it.saranave.ciclo.data.Catalog
-import it.saranave.ciclo.data.Importer
 import it.saranave.ciclo.data.Prefs
 import it.saranave.ciclo.data.Store
 import it.saranave.ciclo.data.Sync
@@ -59,36 +59,39 @@ fun SettingsScreen() {
     val rev by Store.revision.collectAsState()
     var msg by remember { mutableStateOf<String?>(null) }
     var linkDialog by remember { mutableStateOf(false) }
-    var restoreText by remember { mutableStateOf<String?>(null) }
     var openCat by remember { mutableStateOf<String?>(null) }
+    var screen by remember { mutableStateOf("main") }
     val linked = remember(prefsRev) { Prefs.token(ctx) != null }
     val dayCount = remember(rev) { Store.snapshot(ctx).size }
 
-    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+    val zipSaver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
             msg = withContext(Dispatchers.IO) {
                 runCatching {
-                    val text = ctx.contentResolver.openInputStream(uri)!!.bufferedReader().readText()
-                    if (Store.isBackup(text)) { restoreText = text; null }
-                    else {
-                        val data = Importer.fromClue(text)
-                        val n = Store.merge(ctx, data, replace = false)
-                        "Importati ${data.size} giorni da Clue ($n voci nuove) ✓"
-                    }
-                }.getOrElse { "Non riesco a leggere questo file 😕" }
+                    val s = ctx.contentResolver.openOutputStream(uri)!!.use { Backup.write(ctx, it) }
+                    "Backup completo salvato ✓ (${s.days} giorni, ${s.photos} foto, impostazioni)"
+                }.getOrElse { "Backup non riuscito" }
             }
-            Widgets.refreshAsync(ctx)
         }
     }
-    val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
+    val csvSaver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
-        msg = runCatching {
-            ctx.contentResolver.openOutputStream(uri)!!.use { it.write(Store.exportJson(ctx).toByteArray()) }
-            "Backup salvato ✓"
-        }.getOrElse { "Backup non riuscito" }
+        scope.launch {
+            msg = withContext(Dispatchers.IO) {
+                runCatching {
+                    val n = ctx.contentResolver.openOutputStream(uri)!!.use { Backup.writeCsv(ctx, it) }
+                    "Tabella salvata ✓ ($n righe). Si apre con Excel, Fogli Google o Numbers."
+                }.getOrElse { "Esportazione non riuscita" }
+            }
+        }
     }
     val notifPerm = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
+    when (screen) {
+        "send" -> { SendWizard { screen = "main" }; return }
+        "receive" -> { ReceiveWizard { screen = "main" }; return }
+    }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         msg?.let { m -> item { SectionCard("ℹ️") { Text(m); TextButton(onClick = { msg = null }) { Text("Ok") } } } }
@@ -181,12 +184,14 @@ fun SettingsScreen() {
         item {
             SectionCard("💾 Dati") {
                 Text("Giorni registrati: $dayCount · tutto resta solo sul telefono.", style = MaterialTheme.typography.bodySmall)
-                OutlinedButton(onClick = { importer.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*")) },
-                    modifier = Modifier.fillMaxWidth()) { Text("Importa file (Clue o backup)") }
-                OutlinedButton(onClick = { exporter.launch("ciclo-backup-${LocalDate.now()}.json") },
-                    modifier = Modifier.fillMaxWidth()) { Text("Salva un backup") }
-                Text("Per ripristinare un backup, importalo qui sopra.", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Button(onClick = { screen = "send" }, modifier = Modifier.fillMaxWidth()) { Text("📦 Trasferisci su un altro telefono") }
+                Button(onClick = { screen = "receive" }, modifier = Modifier.fillMaxWidth()) { Text("📥 Ricevi da un altro telefono / importa") }
+                OutlinedButton(onClick = { zipSaver.launch("ciclo-backup-${LocalDate.now()}.zip") },
+                    modifier = Modifier.fillMaxWidth()) { Text("💾 Salva un backup completo") }
+                OutlinedButton(onClick = { csvSaver.launch("ciclo-dati-${LocalDate.now()}.csv") },
+                    modifier = Modifier.fillMaxWidth()) { Text("📊 Esporta in tabella (Excel)") }
+                Text("Il backup contiene dati, foto e impostazioni. La tabella serve per leggere i dati o portarli in un'altra app.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         item {
@@ -198,21 +203,6 @@ fun SettingsScreen() {
     }
 
     if (linkDialog) LinkDialog { linkDialog = false }
-
-    restoreText?.let { text ->
-        AlertDialog(
-            onDismissRequest = { restoreText = null },
-            title = { Text("Ripristinare il backup?") },
-            text = { Text("I dati attuali verranno sostituiti da quelli del backup (una copia di sicurezza resta salvata).") },
-            confirmButton = {
-                Button(onClick = {
-                    msg = runCatching { Store.restore(ctx, text); "Backup ripristinato ✓" }.getOrElse { "Backup non valido" }
-                    restoreText = null; Widgets.refreshAsync(ctx)
-                }) { Text("Ripristina") }
-            },
-            dismissButton = { TextButton(onClick = { restoreText = null }) { Text("Annulla") } },
-        )
-    }
 }
 
 @Composable

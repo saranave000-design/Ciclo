@@ -40,6 +40,36 @@ object Prefs {
     fun lastPeriodAlert(ctx: Context) = p(ctx).getString("last_period_alert", "") ?: ""
     fun setLastPeriodAlert(ctx: Context, d: String) = p(ctx).edit().putString("last_period_alert", d).apply()
 
+    // ---- Impostazioni nel backup (senza la chiave GitHub, per sicurezza)
+    private val notInBackup = setOf("token", "batches", "last_sync", "last_period_alert")
+
+    fun dumpSettings(ctx: Context): org.json.JSONObject {
+        val o = org.json.JSONObject()
+        for ((k, v) in p(ctx).all) {
+            if (k in notInBackup) continue
+            when (v) {
+                is Boolean -> o.put(k, org.json.JSONObject().put("b", v))
+                is Int -> o.put(k, org.json.JSONObject().put("i", v))
+                is String -> o.put(k, org.json.JSONObject().put("s", v))
+            }
+        }
+        return o
+    }
+
+    fun loadSettings(ctx: Context, o: org.json.JSONObject) {
+        val e = p(ctx).edit()
+        for (k in o.keys()) {
+            if (k in notInBackup) continue
+            val v = o.optJSONObject(k) ?: continue
+            when {
+                v.has("b") -> e.putBoolean(k, v.getBoolean("b"))
+                v.has("i") -> e.putInt(k, v.getInt("i"))
+                v.has("s") -> e.putString(k, v.getString("s"))
+            }
+        }
+        e.apply(); bump()
+    }
+
     // ---- Collegamento con Claude (GitHub)
     fun token(ctx: Context): String? = p(ctx).getString("token", null)?.takeIf { it.isNotBlank() }
     fun setToken(ctx: Context, t: String?) { p(ctx).edit().putString("token", t?.trim()).apply(); bump() }

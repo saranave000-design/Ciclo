@@ -1,7 +1,10 @@
 package it.saranave.ciclo.ui
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import it.saranave.ciclo.CameraActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -58,10 +61,12 @@ fun PhotoStrip(date: String, day: Day) {
     var pendingName by remember { mutableStateOf<String?>(null) }
     var open by remember { mutableStateOf<String?>(null) }
 
-    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
         val n = pendingName
-        if (ok && n != null && PhotoFiles.file(ctx, n).length() > 0) Store.set(ctx, date, Catalog.PHOTO, photos.toSet() + n)
-        else n?.let { PhotoFiles.file(ctx, it).delete() }
+        val f = n?.let { PhotoFiles.file(ctx, it) }
+        if (res.resultCode == Activity.RESULT_OK && n != null && f != null && f.length() > 0)
+            Store.set(ctx, date, Catalog.PHOTO, Store.get(ctx, date, Catalog.PHOTO) + n)
+        else f?.delete()
         pendingName = null
     }
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -69,7 +74,7 @@ fun PhotoStrip(date: String, day: Day) {
             val n = PhotoFiles.newName(date)
             runCatching {
                 ctx.contentResolver.openInputStream(uri)!!.use { inp -> PhotoFiles.file(ctx, n).outputStream().use { inp.copyTo(it) } }
-                Store.set(ctx, date, Catalog.PHOTO, photos.toSet() + n)
+                Store.set(ctx, date, Catalog.PHOTO, Store.get(ctx, date, Catalog.PHOTO) + n)
             }
         }
     }
@@ -82,14 +87,19 @@ fun PhotoStrip(date: String, day: Day) {
             )
         }
         Text(
-            "Consiglio: stessa luce e stessa distanza ogni volta, viso dritto verso la fotocamera.",
+            "Con \"Scatta con guida\" hai l'ovale per il viso e l'ultima foto in trasparenza, così gli scatti sono confrontabili.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = {
                 val n = PhotoFiles.newName(date); pendingName = n
-                camera.launch(PhotoFiles.uri(ctx, PhotoFiles.file(ctx, n)))
-            }) { Text("📷 Scatta") }
+                val last = Store.allValues(ctx, Catalog.PHOTO).maxOrNull()?.let { PhotoFiles.file(ctx, it) }?.takeIf { it.exists() }
+                camera.launch(
+                    Intent(ctx, CameraActivity::class.java)
+                        .putExtra("out", PhotoFiles.file(ctx, n).absolutePath)
+                        .putExtra("ghost", last?.absolutePath),
+                )
+            }) { Text("📷 Scatta con guida") }
             OutlinedButton(onClick = {
                 gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
             }) { Text("🖼️ Dalla galleria") }
