@@ -1,7 +1,11 @@
-# Da fare
+# Da fare (versione 3, in attesa del via di Sara)
 
-- [ ] Riordinare le voci da segnare nella pagina del giorno: tieni premuto e trascina (le più usate in cima, le meno in fondo); ordine salvato e incluso nel backup
-- [ ] Terapia pelle: casella "+ aggiungi" per creare nuove etichette (nuovi farmaci/trattamenti) che restano disponibili nei giorni successivi
+- [ ] Pagina del giorno: tieni premuto su una voce e trascinala per cambiare l'ordine (ordine salvato e incluso nel backup)
+- [ ] In ogni voce un pulsante "✏️ Modifica opzioni" che apre un editor dove:
+  - [ ] aggiungere nuove opzioni (es. nuovi farmaci nelle terapie)
+  - [ ] eliminare opzioni (i giorni passati in cui erano segnate restano nello storico)
+  - [ ] spostare le opzioni tenendo premuto e trascinando
+- [ ] Opzioni personalizzate e ordine inclusi nel backup completo e nel trasferimento
 
 ## Fatto nella versione 2
 - [x] Foto della pelle con sagoma del viso e ultima foto in trasparenza
