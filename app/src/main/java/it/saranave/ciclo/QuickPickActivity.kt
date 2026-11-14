@@ -18,7 +18,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.HorizontalDivider
+import it.saranave.ciclo.ui.PeriodColors
+import it.saranave.ciclo.widget.Widgets
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -56,6 +62,7 @@ private fun PickSheet(what: String, onClose: () -> Unit) {
     val date = Store.today()
     val day = remember(rev) { Store.day(ctx, date) }
     val title = when (what) {
+        "period" -> "🩸 Mestruazioni di oggi"
         "pain" -> "⚡ Dolori di oggi"
         "skin" -> "🌡️ Pelle di oggi"
         "mood" -> "😊 Come stai oggi"
@@ -81,6 +88,29 @@ private fun PickSheet(what: String, onClose: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     when (what) {
+                        "period" -> {
+                            val cur = day[Catalog.PERIOD]?.firstOrNull()
+                            Catalog.period.options.forEachIndexed { i, o ->
+                                Button(
+                                    onClick = {
+                                        Store.set(ctx, date, Catalog.PERIOD, setOf(o.key))
+                                        Widgets.refreshAsync(ctx); onClose()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = PeriodColors[i],
+                                        contentColor = if (i == 0) Color(0xFF3E0020) else Color.White,
+                                    ),
+                                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                                ) { Text((if (o.key == cur) "✓  " else "") + o.label, style = MaterialTheme.typography.titleMedium) }
+                            }
+                            if (cur != null) OutlinedButton(
+                                onClick = {
+                                    Store.set(ctx, date, Catalog.PERIOD, emptySet())
+                                    Widgets.refreshAsync(ctx); onClose()
+                                },
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                            ) { Text("Togli: niente mestruazioni oggi") }
+                        }
                         "pain" -> CatEditor(Catalog.pain, date, day, showTitle = false)
                         "skin" -> {
                             SkinOkChip(date, day)

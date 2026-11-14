@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
+import androidx.glance.appwidget.updateAll
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,7 +67,8 @@ class CicloWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
             val rev = currentState<Preferences>()[REV] ?: 0L
-            Content(context, rev)
+            // key(rev): a ogni modifica il widget si ridisegna da capo con i dati nuovi
+            key(rev) { Content(context, rev) }
         }
     }
 
@@ -86,6 +89,7 @@ object Widgets {
             updateAppWidgetState(ctx, id) { it[CicloWidget.REV] = System.currentTimeMillis() }
             CicloWidget().update(ctx, id)
         }
+        CicloWidget().updateAll(ctx)
     }
 
     fun refreshAsync(context: Context) {
@@ -136,7 +140,7 @@ private fun Content(context: Context, @Suppress("UNUSED_PARAMETER") rev: Long) {
             Btn(
                 "🩸", period?.let { Catalog.label(Catalog.PERIOD, it) } ?: "Ciclo",
                 period?.let { PERIOD_COLORS[Catalog.periodLevels.indexOf(it).coerceAtLeast(0)] } ?: IDLE,
-                actionRunCallback<PeriodTap>(), GlanceModifier.defaultWeight(),
+                actionStartActivity(pickIntent(context, "period")), GlanceModifier.defaultWeight(),
             )
             Spacer(GlanceModifier.width(6.dp))
             Btn("⚡", if (pain > 0) "Dolori · $pain" else "Dolori", if (pain > 0) ACTIVE else IDLE,
