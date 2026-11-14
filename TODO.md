@@ -1,6 +1,6 @@
 # Da fare
 
-- [ ] Widget, pulsante 🩸: un tocco apre il mini-menu con i livelli (leggere / medie / abbondanti / molto abbondanti / togli) invece di segnare subito "leggere". Ora il tocco ripetuto cambia già livello, ma non è chiaro: valutare con Sara se tenere entrambe le cose
+- [ ] Widget, pulsante 🩸: un tocco apre il mini-menu con i livelli (leggere / medie / abbondanti / molto abbondanti / togli). Togliere il tocco ripetuto: a Sara non funziona proprio (il widget non si aggiorna dopo il primo tocco). Controllare anche che il widget si aggiorni subito dopo ogni scelta nei mini-menu
 
 ## Fatto nella versione 3
 - [x] Pagina del giorno: tieni premuto sul nome di una voce e trascinala per cambiare l'ordine
